@@ -22,6 +22,7 @@
     "test": "node --trace-uncaught test/CI/index.js",
     "prepublishOnly": "yarn build && yarn typedoc",
     "build": "tsc",
+    "postinstall": "npm run build",
     "dev": "yarn build && node test/dev/index.js"
   },
   "keywords": [
