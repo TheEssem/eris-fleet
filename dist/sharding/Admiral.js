@@ -240,7 +240,10 @@ class Admiral extends events_1.EventEmitter {
         }
         if (this.clusterCount === "auto")
             this.clusterCount = (0, os_1.cpus)().length;
-        this.eris = new this.erisClient(this.token);
+        this.eris = new this.erisClient(this.token, {
+            rest: this.clientOptions.rest,
+            intents: this.clientOptions.intents
+        });
         this.launch();
         if (cluster_1.default.isMaster) {
             cluster_1.default.on("message", (worker, message) => {
