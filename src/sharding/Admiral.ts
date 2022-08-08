@@ -627,7 +627,10 @@ export class Admiral extends EventEmitter {
 
 		if (this.clusterCount === "auto") this.clusterCount = cpus().length;
 
-		this.eris = new this.erisClient(this.token);
+		this.eris = new this.erisClient(this.token, {
+			rest: this.clientOptions.rest,
+			intents: this.clientOptions.intents
+		});
 
 		this.launch();
 
