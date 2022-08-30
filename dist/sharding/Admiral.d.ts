@@ -216,8 +216,6 @@ export interface ClusterStats {
     members: number;
     /** Uptime in ms */
     uptime: number;
-    /** The cluster's voice connections */
-    voice: number;
     largeGuilds: number;
     /** The cluster's memory usage in MB */
     ram: number;
@@ -250,7 +248,6 @@ export interface Stats {
     servicesRam: number;
     masterRam: number;
     totalRam: number;
-    voice: number;
     largeGuilds: number;
     shardCount: number;
     clusters: ClusterStats[];

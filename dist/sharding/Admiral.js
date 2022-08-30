@@ -229,7 +229,6 @@ class Admiral extends events_1.EventEmitter {
                 servicesRam: 0,
                 masterRam: 0,
                 totalRam: 0,
-                voice: 0,
                 largeGuilds: 0,
                 shardCount: 0,
                 clusters: [],
@@ -388,7 +387,6 @@ class Admiral extends events_1.EventEmitter {
                                     this.prelimStats.guilds += message.stats.guilds;
                                     this.prelimStats.users += message.stats.users;
                                     this.prelimStats.members += message.stats.members;
-                                    this.prelimStats.voice += message.stats.voice;
                                     this.prelimStats.clustersRam += message.stats.ram;
                                     this.prelimStats.largeGuilds += message.stats.largeGuilds;
                                     this.prelimStats.shardCount += message.stats.shardStats.length;
@@ -2177,7 +2175,6 @@ class Admiral extends events_1.EventEmitter {
             servicesRam: 0,
             masterRam: 0,
             totalRam: 0,
-            voice: 0,
             largeGuilds: 0,
             shardCount: 0,
             clusters: [],
