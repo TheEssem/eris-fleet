@@ -232,7 +232,6 @@ export class Cluster {
 						users: this.bot.users.size,
 						members: totalMembers,
 						uptime: this.bot.uptime,
-						voice: this.bot.voiceConnections.size,
 						largeGuilds: this.bot.guilds.filter(g => g.large).length,
 						shardStats: shardStats,
 						shards: shardStats,
