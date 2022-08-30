@@ -339,7 +339,7 @@ interface WorkerCollection {
  * The sharding manager.
  * @example
  * ```js
- * const { isMaster } = require('cluster');
+ * const { isPrimary } = require('cluster');
  * const { Fleet } = require('eris-fleet');
  * const path = require('path');
  * const { inspect } = require('util');
@@ -352,7 +352,7 @@ interface WorkerCollection {
  * 
  * const Admiral = new Fleet(options);
  * 
- * if (isMaster) {
+ * if (isPrimary) {
  * 	// Code to only run for your master process
  * 	Admiral.on('log', m => console.log(m));
  * 	Admiral.on('debug', m => console.debug(m));
@@ -630,7 +630,7 @@ export class Admiral extends EventEmitter {
 
 		this.launch();
 
-		if (master.isMaster) {
+		if (master.isPrimary) {
 			master.on("message", (worker, message) => {
 				if (message.op) {
 					switch (message.op) {
@@ -1548,7 +1548,7 @@ export class Admiral extends EventEmitter {
 		this.launchingWorkers.clear();
 		this.pauseStats = true;
 
-		if (master.isMaster) {
+		if (master.isPrimary) {
 			process.on("uncaughtException", (e) => this.error(e));
 
 			process.nextTick(() => {

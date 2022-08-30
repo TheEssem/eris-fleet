@@ -1,5 +1,5 @@
 // This file is used for CI testing. This should not be considered a practical example.
-const { isMaster } = require('cluster');
+const { isPrimary } = require('cluster');
 const { Fleet } = require('../../dist/index');
 const path = require('path');
 const { inspect } = require('util');
@@ -24,7 +24,7 @@ const options = {
 
 const Admiral = new Fleet(options);
 
-if (isMaster) {
+if (isPrimary) {
     // Code to only run for your master process
     Admiral.on('log', m => console.log(m));
     Admiral.on('debug', m => console.debug(m));

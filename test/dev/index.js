@@ -1,5 +1,5 @@
 // This is a test folder that was used during development. Do not consider this an example.
-const {isMaster} = require('cluster');
+const {isPrimary} = require('cluster');
 const {Fleet} = require('../../dist/index');
 const path = require('path');
 const {inspect} = require('util');
@@ -21,7 +21,7 @@ const options = {
 
 const Admiral = new Fleet(options);
 
-if (isMaster) {
+if (isPrimary) {
 	setTimeout(() => {
 		Admiral.totalShutdown()
 	}, 5e3)

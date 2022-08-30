@@ -1,4 +1,4 @@
-import { isMaster } from 'cluster';
+import { isPrimary } from 'cluster';
 import { Fleet } from '../../dist/index.js';
 import { inspect } from 'util';
 import { ServiceWorker } from "./service.mjs";
@@ -15,7 +15,7 @@ const options = {
 
 const Admiral = new Fleet(options);
 
-if (isMaster) {
+if (isPrimary) {
     // Code to only run for your master process
     Admiral.on('log', m => console.log(m));
     Admiral.on('debug', m => console.debug(m));
