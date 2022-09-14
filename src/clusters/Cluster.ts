@@ -1,6 +1,6 @@
 import { ClusterConnectMessage } from "./../util/Queue";
-import * as Eris from "eris";
-import {worker} from "cluster";
+import * as Oceanic from "oceanic.js";
+import cluster from "cluster";
 import {BaseClusterWorker} from "./BaseClusterWorker";
 import {inspect} from "util";
 import {LoggingOptions, StartingStatus, ShardStats} from "../sharding/Admiral";
@@ -8,14 +8,50 @@ import { CentralRequestHandler } from "../util/CentralRequestHandler";
 import { IPC } from "../util/IPC";
 
 interface ClusterInput {
-	erisClient: typeof Eris.Client;
+	oceanicClient: typeof Oceanic.Client;
 	fetchTimeout: number;
 	overrideConsole: boolean;
 	BotWorker?: typeof BaseClusterWorker;
 }
 
+export interface ClusterMessage {
+	op: "connect" | "fetchUser" | "fetchChannel"| "fetchGuild" | "fetchMember" | "command" | "eval" | "return" | "collectStats" | "shutdown" | "loadCode" | string;
+}
+
+interface ClusterFetchMessage extends ClusterMessage {
+	id: string;
+	op: "fetchUser" | "fetchChannel"| "fetchGuild" | "fetchMember" | string;
+	UUID: string;
+}
+
+interface ClusterCommandMessage extends ClusterMessage {
+	command: {
+		UUID: string;
+		receptive: boolean;
+		msg: any;
+	};
+	op: "command" | string;
+	UUID: string;
+}
+
+interface ClusterEvalMessage extends ClusterMessage {
+	request: {
+		UUID: string;
+		receptive: boolean;
+		stringToEvaluate: string;
+	};
+	op: "eval" | string;
+	UUID: string;
+}
+
+interface ClusterReturnMessage extends ClusterMessage {
+	id: string;
+	op: "return" | string;
+	value: any;
+}
+
 export class Cluster {
-	private erisClient: typeof Eris.Client;
+	private oceanicClient: typeof Oceanic.Client;
 	firstShardID!: number;
 	lastShardID!: number;
 	path?: string;
@@ -23,10 +59,10 @@ export class Cluster {
 	clusterCount!: number;
 	shardCount!: number;
 	shards!: number;
-	clientOptions!: Eris.ClientOptions;
+	clientOptions!: Oceanic.ClientOptions;
 	whatToLog!: LoggingOptions[];
 	useCentralRequestHandler!: boolean;
-	bot!: Eris.Client;
+	bot!: Oceanic.Client;
 	private token!: string;
 	app?: BaseClusterWorker;
 	App!: typeof BaseClusterWorker;
@@ -38,7 +74,7 @@ export class Cluster {
 	private BotWorker?: typeof BaseClusterWorker;
 
 	constructor(input: ClusterInput) {
-		this.erisClient = input.erisClient;
+		this.oceanicClient = input.oceanicClient;
 		this.BotWorker = input.BotWorker;
 		// add ipc
 		this.ipc = new IPC({fetchTimeout: input.fetchTimeout});
@@ -62,7 +98,7 @@ export class Cluster {
 
 		if (process.send) process.send({op: "launched"});
 		
-		process.on("message", async message => {
+		process.on("message", async (message: ClusterMessage) => {
 			if (message.op) {
 				switch (message.op) {
 				case "connect": {
@@ -89,75 +125,80 @@ export class Cluster {
 				}
 				case "fetchUser": {
 					if (!this.bot) return;
-					const user = this.bot.users.get(message.id);
+					const fetchMessage = message as ClusterFetchMessage;
+					const user = this.bot.users.get(fetchMessage.id);
 					if (user) {
-						if (process.send) process.send({op: "return", value: user, UUID: message.UUID});
+						if (process.send) process.send({op: "return", value: user, UUID: fetchMessage.UUID});
 					} else {
-						if (process.send) process.send({op: "return", value: {id: message.id, noValue: true}, UUID: message.UUID});
+						if (process.send) process.send({op: "return", value: {id: fetchMessage.id, noValue: true}, UUID: fetchMessage.UUID});
 					}
 						
 					break;
 				}
 				case "fetchChannel": {
 					if (!this.bot) return;
-					const channel = this.bot.getChannel(message.id);
+					const fetchMessage = message as ClusterFetchMessage;
+					const channel = this.bot.getChannel(fetchMessage.id);
 					if (channel) {
-						if (process.send) process.send({op: "return", value: channel, UUID: message.UUID});
+						if (process.send) process.send({op: "return", value: channel, UUID: fetchMessage.UUID});
 					} else {
-						if (process.send) process.send({op: "return", value: {id: message.id, noValue: true}, UUID: message.UUID});
+						if (process.send) process.send({op: "return", value: {id: fetchMessage.id, noValue: true}, UUID: fetchMessage.UUID});
 					}
 
 					break;
 				}
 				case "fetchGuild": {
 					if (!this.bot) return;
-					const guild = this.bot.guilds.get(message.id);
+					const fetchMessage = message as ClusterFetchMessage;
+					const guild = this.bot.guilds.get(fetchMessage.id);
 					if (guild) {
-						if (process.send) process.send({op: "return", value: guild, UUID: message.UUID});
+						if (process.send) process.send({op: "return", value: guild, UUID: fetchMessage.UUID});
 					} else {
-						if (process.send) process.send({op: "return", value: {id: message.id, noValue: true}, UUID: message.UUID});
+						if (process.send) process.send({op: "return", value: {id: fetchMessage.id, noValue: true}, UUID: fetchMessage.UUID});
 					}
 
 					break;
 				}
 				case "fetchMember": {
 					if (!this.bot) return;
-					const messageParsed = JSON.parse(message.id);
+					const fetchMessage = message as ClusterFetchMessage;
+					const messageParsed = JSON.parse(fetchMessage.id);
 					const guild = this.bot.guilds.get(messageParsed.guildID);
 					if (guild) {
 						const member = guild.members.get(messageParsed.memberID);
 						if (member) {
 							const clean = member.toJSON();
-							clean.id = message.id;
-							if (process.send) process.send({op: "return", value: clean, UUID: message.UUID});
+							clean.id = fetchMessage.id;
+							if (process.send) process.send({op: "return", value: clean, UUID: fetchMessage.UUID});
 						} else {
-							if (process.send) process.send({op: "return", value: {id: message.id, noValue: true}, UUID: message.UUID});
+							if (process.send) process.send({op: "return", value: {id: fetchMessage.id, noValue: true}, UUID: fetchMessage.UUID});
 						}
 					} else {
-						if (process.send) process.send({op: "return", value: {id: message.id, noValue: true}, UUID: message.UUID});
+						if (process.send) process.send({op: "return", value: {id: fetchMessage.id, noValue: true}, UUID: fetchMessage.UUID});
 					}
 
 					break;
 				}
 				case "command": {
+					const commandMessage = message as ClusterCommandMessage;
 					const noHandle = () => {
 						const res = {err: `Cluster ${this.clusterID} cannot handle commands!`};
 						if (process.send) process.send({op: "return", value: {
-							id: message.command.UUID,
+							id: commandMessage.command.UUID,
 							value: res,
 							clusterID: this.clusterID
-						}, UUID: message.UUID});
+						}, UUID: commandMessage.UUID});
 						this.ipc.error("I can't handle commands!");
 					};
 					if (this.app) {
 						if (this.app.handleCommand) {
-							const res = await this.app.handleCommand(message.command.msg as never);
-							if (message.command.receptive) {
+							const res = await this.app.handleCommand(commandMessage.command.msg as never);
+							if (commandMessage.command.receptive) {
 								if (process.send) process.send({op: "return", value: {
-									id: message.command.UUID,
+									id: commandMessage.command.UUID,
 									value: res,
 									clusterID: this.clusterID
-								}, UUID: message.UUID});
+								}, UUID: commandMessage.UUID});
 							}
 						} else {
 							noHandle();
@@ -169,24 +210,25 @@ export class Cluster {
 					break;
 				}
 				case "eval": {
+					const evalMessage = message as ClusterEvalMessage;
 					const errorEncountered = (err: unknown) => {
-						if (message.request.receptive) {
+						if (evalMessage.request.receptive) {
 							if (process.send) process.send({op: "return", value: {
-								id: message.request.UUID,
+								id: evalMessage.request.UUID,
 								value: {err},
 								clusterID: this.clusterID
-							}, UUID: message.UUID});
+							}, UUID: evalMessage.UUID});
 						}
 					};
 					if (this.app) {
-						this.app.runEval(message.request.stringToEvaluate)
+						this.app.runEval(evalMessage.request.stringToEvaluate)
 							.then((res: unknown) => {
-								if (message.request.receptive) {
+								if (evalMessage.request.receptive) {
 									if (process.send) process.send({op: "return", value: {
-										id: message.request.UUID,
+										id: evalMessage.request.UUID,
 										value: res,
 										clusterID: this.clusterID
-									}, UUID: message.UUID});
+									}, UUID: evalMessage.UUID});
 								}
 							}).catch((error: unknown) => {
 								errorEncountered(error);
@@ -198,7 +240,8 @@ export class Cluster {
 					break;
 				}
 				case "return": {
-					if (this.app) this.ipc.emit(message.id, message.value);
+					const returnMessage = message as ClusterReturnMessage;
+					if (this.app) this.ipc.emit(returnMessage.id, returnMessage.value);
 					break;
 				}
 				case "collectStats": {
@@ -238,12 +281,12 @@ export class Cluster {
 						shards: shardStats,
 						ram: process.memoryUsage().rss / 1e6,
 						ipcLatency: new Date().getTime(),
-						requestHandlerLatencyRef: this.useCentralRequestHandler ? undefined : this.bot.requestHandler.latencyRef
+						requestHandlerLatencyRef: this.useCentralRequestHandler ? undefined : this.bot.rest.handler.latencyRef
 					}});
 
 					break;
 				}
-				case "shutdown": {
+				/*case "shutdown": {
 					this.shutdown = true;
 					if (this.app) {
 						if (this.app.shutdown) {
@@ -262,7 +305,7 @@ export class Cluster {
 					}
 
 					break;
-				}
+				}*/
 				case "loadCode": {
 					this.loadCode();
 
@@ -282,15 +325,15 @@ export class Cluster {
 		let App;
 		if (this.BotWorker) {
 			App = this.BotWorker;
-			bot = new this.erisClient(this.token, options);
+			bot = new this.oceanicClient(options);
 		} else {
 			try {
 				App = await import(this.path!);
-				if (App.Eris) {
-					bot = new App.Eris.Client(this.token, options);
+				if (App.Oceanic) {
+					bot = new App.Oceanic.Client(options);
 					App = App.BotWorker;
 				} else {
-					bot = new this.erisClient(this.token, options);
+					bot = new this.oceanicClient(options);
 					if (App.BotWorker) {
 						App = App.BotWorker;
 					} else {
@@ -316,7 +359,7 @@ export class Cluster {
 		const setStatus = () => {
 			if (this.startingStatus) {
 				if (this.startingStatus.game) {
-					this.bot.editStatus(this.startingStatus.status, this.startingStatus.game);
+					this.bot.editStatus(this.startingStatus.status, [this.startingStatus.game]);
 				} else {
 					this.bot.editStatus(this.startingStatus.status);
 				}
@@ -393,13 +436,13 @@ export class Cluster {
 		//let App = (await import(this.path)).default;
 		//App = App.default ? App.default : App;
 		try {
-			this.app = new this.App({bot: this.bot, clusterID: this.clusterID, workerID: worker.id, ipc: this.ipc});
+			this.app = new this.App({bot: this.bot, clusterID: this.clusterID, workerID: cluster.worker!.id, ipc: this.ipc});
 			if (!this.app) return;
 			if (process.send) process.send({op: "codeLoaded"});
 		} catch (e) {
 			this.ipc.error(e);
 			// disconnect bot
-			if (this.bot) this.bot.disconnect({reconnect: false});
+			//if (this.bot) this.bot.disconnect({reconnect: false});
 			// kill cluster
 			process.exit(1);
 		}

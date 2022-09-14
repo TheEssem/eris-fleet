@@ -3,6 +3,7 @@ const {isPrimary} = require('cluster');
 const {Fleet} = require('../../dist/index');
 const path = require('path');
 const {inspect} = require('util');
+const {Intents} = require('oceanic.js');
 
 require('dotenv').config();
 
@@ -17,6 +18,11 @@ const options = {
   },
   shards: 2,
   clusters: 2,
+  clientOptions: {
+    gateway:{
+        intents: [Intents.GUILDS,Intents.GUILD_MESSAGES,Intents.MESSAGE_CONTENT]
+    }
+  }
 };
 
 const Admiral = new Fleet(options);

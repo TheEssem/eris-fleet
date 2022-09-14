@@ -2,6 +2,7 @@ const { isPrimary } = require('cluster');
 const { Fleet } = require('../../dist/index');
 const path = require('path');
 const { inspect } = require('util');
+const { Intents } = require('oceanic.js');
 
 require('dotenv').config();
 
@@ -12,6 +13,11 @@ const options = {
         status: "dnd",
         game: {
             name: "Starting..."
+        }
+    },
+    clientOptions: {
+        gateway:{
+            intents: [Intents.GUILD_MESSAGES,Intents.MESSAGE_CONTENT]
         }
     }
 }

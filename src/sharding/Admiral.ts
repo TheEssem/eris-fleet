@@ -3,10 +3,10 @@ import { BaseServiceWorker } from "./../services/BaseServiceWorker";
 import { IPC, IpcHandledLog } from "./../util/IPC";
 import {EventEmitter} from "events";
 import {cpus} from "os";
-import master from "cluster";
+import master, {Worker} from "cluster";
 import {Collection} from "../util/Collection";
 import {Queue, QueueItem, ClusterConnectMessage, ServiceConnectMessage} from "../util/Queue";
-import Eris from "eris";
+import * as Oceanic from "oceanic.js";
 import {Cluster} from "../clusters/Cluster";
 import {Service} from "../services/Service";
 import path from "path";
@@ -41,8 +41,8 @@ export interface ObjectLog {
 } 
 
 export interface StartingStatus {
-	status: Eris.Status;
-	game?: Eris.ActivityPartial<Eris.BotActivityType>;
+	status: "online" | "idle" | "dnd";
+	game?: Oceanic.BotActivity;
 }
 
 /** Possible options to put in the logging options array */
@@ -77,9 +77,9 @@ export type LoggingOptions = "gateway_shards" |
 export interface ReshardOptions {
 	/** Guilds per shard */
 	guildsPerShard?: number | "auto";
-	/** First shard ID to use on this instance of eris-fleet */
+	/** First shard ID to use on this instance of oceanic-fleet */
 	firstShardID?: number;
-	/** Last shard ID to use on this instance of eris-fleet */
+	/** Last shard ID to use on this instance of oceanic-fleet */
 	lastShardID?: number;
 	/** Number of shards */
 	shards?: number | "auto";
@@ -111,10 +111,10 @@ export interface Options {
 	 */
 	clusters?: number | "auto";
 	/** 
-	 * Options to pass to the Eris client constructor.
+	 * Options to pass to the Oceanic client constructor.
 	 * Intents default to all non-privileged intents.
 	 */
-	clientOptions?: Eris.ClientOptions;
+	clientOptions?: Oceanic.ClientOptions;
 	/** 
 	 * How long to wait for shards to connect to discord
 	 * 
@@ -140,9 +140,9 @@ export interface Options {
 	statsInterval?: number | "disable";
 	/** Services to start by name and path */
 	services?: ServiceCreator[];
-	/** First shard ID to use on this instance of eris-fleet */
+	/** First shard ID to use on this instance of oceanic-fleet */
 	firstShardID?: number;
-	/** Last shard ID to use on this instance of eris-fleet */
+	/** Last shard ID to use on this instance of oceanic-fleet */
 	lastShardID?: number;
 	/** 
 	 * Option to have less logging show up
@@ -189,18 +189,18 @@ export interface Options {
 	 * @defaultValue 10e3
 	 */
 	fetchTimeout?: number;
-	/** Extended eris client class (should extend Eris.Client) */
-	customClient?: typeof Eris.Client;
+	/** Extended oceanic client class (should extend Oceanic.Client) */
+	customClient?: typeof Oceanic.Client;
 	/** 
 	 * Whether to use a central request handler.
-	 * The central request handler routes Eris requests to the Discord API through a single instance of the Eris RequestHandler.
+	 * The central request handler routes Oceanic requests to the Discord API through a single instance of the Oceanic RequestHandler.
 	 * This helps prevent 429 errors from the Discord API by using a single rate limiter pool.
 	 * @defaultValue false
 	 */
 	useCentralRequestHandler?: boolean;
 	/**
-	 * Whether to load your cluster class as soon as possible or wait until Eris's ready event.
-	 * If you use this, your bot file must listen for the Eris ready event before doing anything which requires all shards to be connected.
+	 * Whether to load your cluster class as soon as possible or wait until Oceanic's ready event.
+	 * If you use this, your bot file must listen for the Oceanic ready event before doing anything which requires all shards to be connected.
 	 * Also note that this will allow or your BotWorker to listen for events already being listened for in the old cluster during a soft restart. Be careful to avoid responding to an event twice.
 	 * @defaultValue false
 	 */
@@ -216,7 +216,7 @@ export interface Options {
 	 */
 	startServicesTogether?: boolean;
 	/**
-	 * Override the `max_concurrency` value sent from Discord (useful if using eris-fleet across machines).
+	 * Override the `max_concurrency` value sent from Discord (useful if using oceanic-fleet across machines).
 	 * Set to 1 to disable concurrency.
 	 * @beta
 	 */
@@ -243,7 +243,7 @@ export interface ShardStats {
 	latency: number;
 	id: number;
 	ready: boolean;
-	status: Eris.Shard["status"];
+	status: Oceanic.Shard["status"];
 	guilds: number;
 	/**
 	 * @deprecated Use {@link ShardStats.members}
@@ -275,7 +275,7 @@ export interface ClusterStats {
 	/** One-way IPC latency between the admiral and the cluster in ms */
 	ipcLatency: number;
 	/** Latency for the request handler if not using the central request handler */
-	requestHandlerLatencyRef?: Eris.LatencyRef;
+	requestHandlerLatencyRef?: Oceanic.LatencyRef;
 }
 
 export interface ServiceStats {
@@ -292,7 +292,7 @@ export interface Stats {
 	guilds: number;
 	/** Total cached users */
 	users: number;
-	/** Total members this instance of eris-fleet is serving */
+	/** Total members this instance of oceanic-fleet is serving */
 	members: number;
 	clustersRam: number;
 	servicesRam: number;
@@ -306,7 +306,7 @@ export interface Stats {
 	/** Timestamp of when the stats were collected in ms since Unix Epoch */
 	timestamp: number;
 	/** Latency for the request handler if using the central request handler */
-	centralRequestHandlerLatencyRef?: Eris.LatencyRef;
+	centralRequestHandlerLatencyRef?: Oceanic.LatencyRef;
 }
 
 export interface ClusterCollection {
@@ -343,7 +343,7 @@ interface WorkerCollection {
  * @example
  * ```js
  * const { isPrimary } = require('cluster');
- * const { Fleet } = require('eris-fleet');
+ * const { Fleet } = require('oceanic-fleet');
  * const path = require('path');
  * const { inspect } = require('util');
  * require('dotenv').config();
@@ -405,11 +405,11 @@ export class Admiral extends EventEmitter {
 	public clusterCount: number | "auto";
 	public lastShardID: number;
 	public firstShardID: number;
-	private clientOptions: Eris.ClientOptions;
+	private clientOptions: Oceanic.ClientOptions;
 	public serviceTimeout: number;
 	public clusterTimeout: number;
 	public killTimeout: number;
-	private erisClient: typeof Eris.Client;
+	private oceanicClient: typeof Oceanic.Client;
 	private useCentralRequestHandler: boolean;
 	private nodeArgs?: string[];
 	private statsInterval: number | "disable";
@@ -418,8 +418,8 @@ export class Admiral extends EventEmitter {
 	/** Services to create */
 	private servicesToCreate?: ServiceCreator[];
 	private queue: Queue;
-	/** Eris client used to get the gateway information and to send requests when using the central request handler */
-	public eris: Eris.Client;
+	/** Oceanic client used to get the gateway information and to send requests when using the central request handler */
+	public oceanic: Oceanic.Client;
 	private prelimStats?: Stats;
 	private statsWorkersCounted?: number;
 	private chunks?: number[][];
@@ -464,11 +464,11 @@ export class Admiral extends EventEmitter {
 		this.guildsPerShard = options.guildsPerShard ?? "auto";
 		this.shardCount = options.shards ?? "auto";
 		this.clusterCount = options.clusters ?? "auto";
-		this.clientOptions = options.clientOptions ?? {intents: Eris.Constants.Intents.allNonPrivileged};
+		this.clientOptions = options.clientOptions ?? {auth:options.token,gateway:{intents: Oceanic.AllNonPrivilegedIntents}};
 		this.clusterTimeout = options.clusterTimeout ?? 5e3;
 		this.serviceTimeout = options.serviceTimeout ?? 0;
 		this.killTimeout = options.killTimeout ?? 10e3;
-		this.erisClient = options.customClient ?? Eris.Client;
+		this.oceanicClient = options.customClient ?? Oceanic.Client;
 		this.useCentralRequestHandler = options.useCentralRequestHandler ?? false;
 		this.nodeArgs = options.nodeArgs;
 		this.statsInterval = options.statsInterval ?? 60e3;
@@ -488,6 +488,7 @@ export class Admiral extends EventEmitter {
 		if (options.startingStatus) this.startingStatus = options.startingStatus;
 		// Deals with needed components
 		if (!options.token) throw "No token!";
+		if (options.token && !this.clientOptions.auth) this.clientOptions.auth = options.token;
 		if (!options.path && !options.BotWorker) {
 			throw "No BotWorker path or class!";
 		}
@@ -515,8 +516,6 @@ export class Admiral extends EventEmitter {
 				}
 			});
 		}
-
-		if (options.timeout) this.clientOptions.connectionTimeout = options.timeout;
 
 		const allLogOptions = [
 			"gateway_shards",
@@ -627,9 +626,10 @@ export class Admiral extends EventEmitter {
 
 		if (this.clusterCount === "auto") this.clusterCount = cpus().length;
 
-		this.eris = new this.erisClient(this.token, {
+		this.oceanic = new this.oceanicClient({
+			auth: this.token,
 			rest: this.clientOptions.rest,
-			intents: this.clientOptions.intents
+			gateway: this.clientOptions.gateway
 		});
 
 		this.launch();
@@ -807,7 +807,7 @@ export class Admiral extends EventEmitter {
 					}
 					case "centralApiRequest": {
 						const data = parseJSON(message.request.dataSerialized);
-						this.centralApiRequest(worker, message.request.UUID, data);
+						this.centralApiRequest(worker, message.request.UUID, data, message.request.fileStrings);
 						break;
 					}
 					case "shardUpdate": {
@@ -916,7 +916,7 @@ export class Admiral extends EventEmitter {
 			});
 
 			this.queue.on("execute", (item: QueueItem/*, prevItem?: QueueItem*/) => {
-				const worker = master.workers[item.workerID];
+				const worker = master.workers![item.workerID];
 				if (worker) {
 					if (item.message.op === "connect") {
 						const concurrency = () => {
@@ -965,7 +965,7 @@ export class Admiral extends EventEmitter {
 						worker.send(item.message);
 						setTimeout(() => {
 							if (this.queue.queue[0]) if (this.queue.queue[0].workerID === item.workerID) {
-								const worker = master.workers[item.workerID];
+								const worker = master.workers![item.workerID];
 								if (worker) {
 									worker.kill();
 									const name = () => {
@@ -1041,7 +1041,7 @@ export class Admiral extends EventEmitter {
 		case "serviceCommand": {
 			const service = this.services.get(message.command.service) as ServiceCollection;
 			if (service) {
-				const serviceWorker = master.workers[service.workerID];
+				const serviceWorker = master.workers![service.workerID];
 				if (serviceWorker) {
 					serviceWorker.send({
 						op: "command",
@@ -1082,7 +1082,7 @@ export class Admiral extends EventEmitter {
 		case "clusterCommand": {
 			const cluster = this.clusters.get(message.command.clusterID) as ClusterCollection;
 			if (cluster) {
-				const clusterWorker = master.workers[cluster.workerID];
+				const clusterWorker = master.workers![cluster.workerID];
 				if (clusterWorker) {
 					clusterWorker.send({
 						op: "command",
@@ -1122,7 +1122,7 @@ export class Admiral extends EventEmitter {
 		}
 		case "allClustersCommand": {
 			this.clusters.forEach((c: ClusterCollection) => {
-				const clusterWorker = master.workers[c.workerID];
+				const clusterWorker = master.workers![c.workerID];
 				if (clusterWorker) {
 					process.nextTick(() => clusterWorker.send({
 						op: "command",
@@ -1150,7 +1150,7 @@ export class Admiral extends EventEmitter {
 		case "clusterEval": {
 			const cluster = this.clusters.get(message.request.clusterID) as ClusterCollection;
 			if (cluster) {
-				const clusterWorker = master.workers[cluster.workerID];
+				const clusterWorker = master.workers![cluster.workerID];
 				if (clusterWorker) {
 					clusterWorker.send({
 						op: "eval",
@@ -1191,7 +1191,7 @@ export class Admiral extends EventEmitter {
 		case "serviceEval": {
 			const service = this.services.get(message.request.serviceName) as ServiceCollection;
 			if (service) {
-				const serviceWorker = master.workers[service.workerID];
+				const serviceWorker = master.workers![service.workerID];
 				if (serviceWorker) {
 					serviceWorker.send({
 						op: "eval",
@@ -1231,7 +1231,7 @@ export class Admiral extends EventEmitter {
 		}
 		case "allClustersEval": {
 			this.clusters.forEach((c: ClusterCollection) => {
-				const clusterWorker = master.workers[c.workerID];
+				const clusterWorker = master.workers![c.workerID];
 				if (clusterWorker) {
 					process.nextTick(() => clusterWorker.send({
 						op: "eval",
@@ -1308,7 +1308,7 @@ export class Admiral extends EventEmitter {
 		case "sendTo": {
 			const clusterObj = this.clusters.get(message.cluster) as ClusterCollection;
 			if (!clusterObj) return;
-			const worker = master.workers[clusterObj.workerID];
+			const worker = master.workers![clusterObj.workerID];
 			if (!worker) return;
 			worker.send({op: "ipcEvent", event: message.event.op, msg: message.event.msg});
 
@@ -1609,7 +1609,7 @@ export class Admiral extends EventEmitter {
 		} else if (master.isWorker) {
 			if (process.env.type === "cluster") {
 				new Cluster({
-					erisClient: this.erisClient,
+					oceanicClient: this.oceanicClient,
 					fetchTimeout: this.fetchTimeout,
 					overrideConsole: this.overrideConsole,
 					BotWorker: this.BotWorker
@@ -1629,7 +1629,7 @@ export class Admiral extends EventEmitter {
 			if (message.UUID === "master") {
 				this.ipc.emit(message.value.id, value);
 			} else {
-				const requestingWorker = master.workers[message.UUID];
+				const requestingWorker = master.workers![message.UUID];
 				if (requestingWorker) {
 					requestingWorker.send({
 						op: "return",
@@ -1664,7 +1664,7 @@ export class Admiral extends EventEmitter {
 		}
 	}
 
-	private centralApiRequest(worker: master.Worker, UUID: string, data: {method: Eris.RequestMethod, url: string, auth?: boolean, body?: { [s: string]: unknown }, file?: Eris.FileContent, fileString?: string, _route?: string, short?: boolean}) {
+	private centralApiRequest(worker: Worker, UUID: string, data: Oceanic.RequestOptions, fileStrings: Array<string> /*{method: Oceanic.RESTMethod, url: string, auth?: boolean, body?: { [s: string]: unknown }, file?: Oceanic.File, fileString?: string, _route?: string, short?: boolean}*/) {
 		const reply = (resolved: boolean, value: unknown) => {
 			const valueSerialized = stringifyJSON(value);
 			worker.send({
@@ -1677,11 +1677,13 @@ export class Admiral extends EventEmitter {
 			});
 		};
 
-		if (data.fileString && data.file) {
-			data.file.file = Buffer.from(data.fileString, "base64");
+		if (fileStrings && data.files) {
+			for (let i = 0; i < data.files.length; i++) {
+				data.files[i].contents = Buffer.from(fileStrings[i], "base64");
+			}
 		}
 
-		this.eris.requestHandler.request(data.method, data.url, data.auth, data.body, data.file, data._route, data.short)
+		this.oceanic.rest.request(data)
 			.then((value) => {
 				reply(true, value);
 			})
@@ -1725,7 +1727,7 @@ export class Admiral extends EventEmitter {
 			process.nextTick(() => {
 				completed++;
 				const workerID = cluster.workerID;
-				const worker = master.workers[workerID];
+				const worker = master.workers![workerID];
 				if (worker) {
 					const restartItem = this.restartWorker(worker, true, hard ? false : true);
 					if (restartItem) queueItems.push(restartItem);
@@ -1747,7 +1749,7 @@ export class Admiral extends EventEmitter {
 		const serviceObj = this.services.get(serviceName) as ServiceCollection;
 		if (!serviceObj) return;
 		const workerID = serviceObj.workerID;
-		const worker = master.workers[workerID];
+		const worker = master.workers![workerID];
 		if (worker) {
 			const restartItem = this.restartWorker(worker, true, hard ? false : true);
 			if (restartItem) this.queue.item(restartItem);
@@ -1768,7 +1770,7 @@ export class Admiral extends EventEmitter {
 				const serviceObj = this.services.get(service.serviceName) as ServiceCollection;
 				if (serviceObj) {
 					const workerID = serviceObj.workerID;
-					const worker = master.workers[workerID];
+					const worker = master.workers![workerID];
 					if (worker) {
 						const restartItem = this.restartWorker(worker, true, hard ? false : true);
 						if (restartItem) queueItems.push(restartItem);
@@ -1792,7 +1794,7 @@ export class Admiral extends EventEmitter {
 		const clusterObj = this.clusters.get(clusterID) as ClusterCollection;
 		if (!clusterObj) return;
 		const workerID = clusterObj.workerID;
-		const worker = master.workers[workerID];
+		const worker = master.workers![workerID];
 		if (worker) {
 			const shutdownItem = this.shutdownWorker(worker, hard ? false : true);
 			this.queue.item(shutdownItem);
@@ -1808,7 +1810,7 @@ export class Admiral extends EventEmitter {
 		const serviceObj = this.services.get(serviceName);
 		if (!serviceObj) return;
 		const workerID = serviceObj.workerID;
-		const worker = master.workers[workerID];
+		const worker = master.workers![workerID];
 		if (worker) {
 			const shutdownItem = this.shutdownWorker(worker, hard ? false : true);
 			this.queue.item(shutdownItem);
@@ -1896,7 +1898,7 @@ export class Admiral extends EventEmitter {
 			this.clusters.forEach((cluster) => {
 				total++;
 				process.nextTick(() => {
-					const worker = master.workers[cluster.workerID];
+					const worker = master.workers![cluster.workerID];
 					if (worker) {
 						const shutdownItem = this.shutdownWorker(worker, hard ? false : true, doneFn);
 						queueItems.push(shutdownItem);
@@ -1907,7 +1909,7 @@ export class Admiral extends EventEmitter {
 			this.services.forEach((service) => {
 				total++;
 				process.nextTick(() => {
-					const worker = master.workers[service.workerID];
+					const worker = master.workers![service.workerID];
 					if (worker) {
 						const shutdownItem = this.shutdownWorker(worker, hard ? false : true, doneFn);
 						queueItems.push(shutdownItem);
@@ -1918,7 +1920,7 @@ export class Admiral extends EventEmitter {
 			this.launchingWorkers.forEach((workerData, workerID) => {
 				total++;
 				process.nextTick(() => {
-					const worker = master.workers[workerID];
+					const worker = master.workers![workerID];
 					if (worker) {
 						const shutdownItem = this.shutdownWorker(worker, hard ? false : true, doneFn);
 						queueItems.push(shutdownItem);
@@ -1957,7 +1959,7 @@ export class Admiral extends EventEmitter {
 				let i = 0;
 				const queueItems: QueueItem[] = [];
 				oldClusters.forEach((c) => {
-					const oldWorker = master.workers[c.workerID];
+					const oldWorker = master.workers![c.workerID];
 					if (oldWorker) {
 						const shutdownItem = this.shutdownWorker(oldWorker, true, () => {
 							if (this.whatToLog.includes("resharding_worker_killed")) {
@@ -1966,7 +1968,7 @@ export class Admiral extends EventEmitter {
 							const newWorkerClusterObj = this.clusters.get(c.clusterID) as ClusterCollection;
 							let newWorker;
 							if (newWorkerClusterObj) {
-								newWorker = master.workers[newWorkerClusterObj.workerID];
+								newWorker = master.workers![newWorkerClusterObj.workerID];
 							}
 							if (this.whatToLog.includes("resharding_transition")) {
 								this.log(`Transitioning to new worker for cluster ${c.clusterID}`, "Admiral");
@@ -1977,7 +1979,7 @@ export class Admiral extends EventEmitter {
 								// load code for new clusters
 								this.clusters.forEach((c: ClusterCollection) => {
 									if (!oldClusters.get(c.clusterID)) {
-										const newWorker = master.workers[c.workerID];
+										const newWorker = master.workers![c.workerID];
 										if (newWorker) newWorker.send({op: "loadCode"});
 										if (this.whatToLog.includes("resharding_transition")) {
 											this.log(`Loaded code for new cluster ${c.clusterID}`, "Admiral");
@@ -2015,11 +2017,11 @@ export class Admiral extends EventEmitter {
 	public broadcast(op: string, msg?: unknown): void {
 		if (!msg) msg = null;
 		this.clusters.forEach((c: ClusterCollection) => {
-			const worker = master.workers[c.workerID];
+			const worker = master.workers![c.workerID];
 			if (worker) process.nextTick(() => worker.send({op: "ipcEvent", event: op, msg}));
 		});
 		this.services.forEach((s: ServiceCollection) => {
-			const worker = master.workers[s.workerID];
+			const worker = master.workers![s.workerID];
 			if (worker) process.nextTick(() => worker.send({op: "ipcEvent", event: op, msg}));
 		});
 		this.ipc.emit("ipcEvent", {
@@ -2030,7 +2032,7 @@ export class Admiral extends EventEmitter {
 	}
 
 	/**
-	 * Force eris-fleet to fetch fresh stats
+	 * Force oceanic-fleet to fetch fresh stats
 	 * @returns Promise with stats
 	 */
 	public collectStats(): Promise<Stats> {
@@ -2043,7 +2045,7 @@ export class Admiral extends EventEmitter {
 	}
 
 	/**
-	 * Updates the BotWorker used by eris-fleet. The new class will be used the next time clusters are restarted.
+	 * Updates the BotWorker used by oceanic-fleet. The new class will be used the next time clusters are restarted.
 	 * @param BotWorker BotWorker class to update with
 	 */
 	public updateBotWorker(BotWorker: typeof BaseClusterWorker): void {
@@ -2178,8 +2180,8 @@ export class Admiral extends EventEmitter {
 
 	private async calculateShards() {
 		let shards = this.shardCount;
-		const gateway = await this.eris.getBotGateway();
-		if (!this.maxConcurrencyOverride) this.maxConcurrency = gateway.session_start_limit.max_concurrency;
+		const gateway = await this.oceanic.rest.getBotGateway();
+		if (!this.maxConcurrencyOverride) this.maxConcurrency = gateway.sessionStartLimit.maxConcurrency;
 		if (this.whatToLog.includes("gateway_shards")) {
 			this.log(`Gateway recommends ${gateway.shards} shards. Using ${this.maxConcurrency} max concurrency.`, "Admiral");
 		}
@@ -2233,7 +2235,7 @@ export class Admiral extends EventEmitter {
 		return r;
 	}
 
-	private shutdownWorker(worker: master.Worker, soft?: boolean, callback?: () => void, customMaps?: { clusters?: Collection<number, ClusterCollection>; services?: Collection<string, ServiceCollection>; launchingWorkers?: Collection<number, WorkerCollection> }) {
+	private shutdownWorker(worker: Worker, soft?: boolean, callback?: () => void, customMaps?: { clusters?: Collection<number, ClusterCollection>; services?: Collection<string, ServiceCollection>; launchingWorkers?: Collection<number, WorkerCollection> }) {
 		let cluster: ClusterCollection | undefined;
 		let service: ServiceCollection | undefined;
 		let launchingWorker: WorkerCollection | undefined;
@@ -2359,7 +2361,7 @@ export class Admiral extends EventEmitter {
 		return item;
 	}
 
-	private restartWorker(worker: master.Worker, manual?: boolean, soft?: boolean) {
+	private restartWorker(worker: Worker, manual?: boolean, soft?: boolean) {
 		const cluster = this.clusters.find(
 			(c: ClusterCollection) => c.workerID === worker.id,
 		);
@@ -2536,7 +2538,7 @@ export class Admiral extends EventEmitter {
 		for (let i = 0; this.clusters.get(i); i++) {
 			process.nextTick(() => {
 				const cluster = this.clusters.get(i) as ClusterCollection;
-				const worker = master.workers[cluster.workerID];
+				const worker = master.workers![cluster.workerID];
 				if (worker) worker.send({op, id, UUID});
 			});
 		}
@@ -2571,18 +2573,18 @@ export class Admiral extends EventEmitter {
 			clusters: [],
 			services: [],
 			timestamp: 0,
-			centralRequestHandlerLatencyRef: this.useCentralRequestHandler ? this.eris.requestHandler.latencyRef : undefined
+			centralRequestHandlerLatencyRef: this.useCentralRequestHandler ? this.oceanic.rest.handler.latencyRef : undefined
 		};
 		this.statsWorkersCounted = 0;
 		this.clusters.forEach((c: ClusterCollection) => {
 			process.nextTick(() => {
-				const worker = master.workers[c.workerID];
+				const worker = master.workers![c.workerID];
 				if (worker) worker.send({ op: "collectStats" });
 			});
 		});
 		this.services.forEach((s: ServiceCollection) => {
 			process.nextTick(() => {
-				const worker = master.workers[s.workerID];
+				const worker = master.workers![s.workerID];
 				if (worker) worker.send({ op: "collectStats" });
 			});
 		});

@@ -1,24 +1,22 @@
 <div align="center">
   <p>
-  <a href="https://github.com/abalabahaha/eris"><img src="https://img.shields.io/badge/Discord%20Library-Eris-blue?style=flat-square" alt="Discord Library" /></a>
-    <a href="https://www.npmjs.com/package/eris-fleet"><img src="https://img.shields.io/npm/v/eris-fleet.svg?cacheSeconds=3600&style=flat-square&label=version&logo=npm" alt="NPM version" /></a>
-    <a href="https://raw.githubusercontent.com/danclay/eris-fleet/master/LICENSE"><img alt="License" src="https://img.shields.io/npm/l/eris-fleet?style=flat-square">
-    <a href="https://github.com/danclay/eris-fleet/actions/workflows/ci.yml"><img src="https://img.shields.io/github/workflow/status/danclay/eris-fleet/Node.js%20CI/master?style=flat-square&logo=github" alt="Node.js CI" /></a>
-  </p>
-  <p>
-    <a href="https://www.npmjs.com/package/eris-fleet/"><img src="https://nodeico.herokuapp.com/eris-fleet.svg"></a>
+  <a href="https://github.com/OceanicJS/Oceanic"><img src="https://img.shields.io/badge/Discord%20Library-Oceanic-blue?style=flat-square" alt="Discord Library" /></a>
+    <a href="https://raw.githubusercontent.com/esmBot/oceanic-fleet/master/LICENSE"><img alt="License" src="https://img.shields.io/npm/l/eris-fleet?style=flat-square"></a>
+    <a href="https://github.com/esmBot/oceanic-fleet/actions/workflows/ci.yml"><img src="https://img.shields.io/github/workflow/status/esmBot/oceanic-fleet/Node.js%20CI/master?style=flat-square&logo=github" alt="Node.js CI" /></a>
   </p>
 </div>
 
-### [Documentation](https://danclay.github.io/eris-fleet/) | [Eris](https://github.com/abalabahaha/eris)
+### [Documentation](https://esmbot.github.io/oceanic-fleet/) | [Oceanic](https://github.com/OceanicJS/Oceanic)
 
-# About eris-fleet
+# About oceanic-fleet
 
-A spin-off of [eris-sharder](https://github.com/discordware/eris-sharder) and [megane](https://github.com/brussell98/megane) with services and configurable logging.
+A fork of danclay's [eris-fleet](https://github.com/danclay/eris-fleet) designed to work with the newer [Oceanic](https://github.com/OceanicJS/Oceanic) library, which was created in response to the slow and difficult maintenance of Eris.
 
-For detailed documentation check the [docs](https://danclay.github.io/eris-fleet/).
+eris-fleet is a spin-off of [eris-sharder](https://github.com/discordware/eris-sharder) and [megane](https://github.com/brussell98/megane) with services and configurable logging.
 
-eris-fleet currently supports Eris v0.16.x.
+For detailed documentation check the [docs](https://esmbot.github.io/oceanic-fleet/).
+
+oceanic-fleet currently supports Oceanic v1.0.0.
 
 ## Highlighted Features:
 
@@ -28,14 +26,14 @@ eris-fleet currently supports Eris v0.16.x.
 - Update a bot with minimal downtime using soft restarts
 - Customizable logging
 - Fetch data from across clusters easily
-- Services (non-eris workers)
+- Services (non-oceanic workers)
 - IPC to communicate between clusters, other clusters, and services
 - Detailed stats collection
 - Soft cluster and service restarts where the old worker is killed after the new one is ready
 - Graceful shutdowns
 - Central request handler
 - Central data store
-- Can use a modified version of Eris
+- Can use a modified version of Oceanic
 - Concurrency support
 
 A very basic diagram:
@@ -44,18 +42,18 @@ A very basic diagram:
 
 ## Help
 
-If you still have questions, you can join the support server on Discord: [Discord server](https://discord.gg/tk2n3naJn3)
+If you still have questions, you can join the esmBot Support server: https://discord.gg/esmbot
 
-[![Support server on Discord](https://discord.com/api/guilds/866589508392976384/widget.png?style=banner2)](https://discord.gg/tk2n3naJn3)
+[![Support server on Discord](https://discord.com/api/guilds/592399417676529688/widget.png?style=banner2)](https://discord.gg/esmbot)
 
 # Installation
 Run `npm install eris-fleet` or with yarn: `yarn add eris-fleet`.
 
-To use a less refined, but more up-to-date branch, use `npm install danclay/eris-fleet#dev` or `yarn add danclay/eris-fleet#dev`. [Documentation for the dev branch.](https://github.com/danclay/eris-fleet/tree/dev)
+To use a less refined, but more up-to-date branch, use `npm install esmBot/oceanic-fleet#dev` or `yarn add esmBot/oceanic-fleet#dev`. [Documentation for the dev branch.](https://github.com/esmBot/oceanic-fleet/tree/dev)
 
 # Basics
 
-Some working examples are in [test/](https://github.com/danclay/eris-fleet/tree/master/test).
+Some working examples are in [test/](https://github.com/esmBot/oceanic-fleet/tree/master/test).
 
 ## Naming Conventions
 | Term | Description |
@@ -63,20 +61,20 @@ Some working examples are in [test/](https://github.com/danclay/eris-fleet/tree/
 | "fleet" | All the components below |
 | "admiral" | A single sharding manager |
 | "worker" | A worker for node clustering |
-| "cluster" | A worker containing Eris shards |
-| "service" | A worker that does not contain Eris shards, but can interact with clusters |
+| "cluster" | A worker containing Oceanic shards |
+| "service" | A worker that does not contain Oceanic shards, but can interact with clusters |
 
 ## Get Started
 To get started, you will need at least 2 files:
 1. Your file which will create the fleet. This will be called "index.js" for now.
 2. Your file containing your bot code. This will be called "bot.js" for now. This file will extend `BaseClusterWorker`
 
-In the example below, the variable `options` is passed to the admiral. [Read the docs](https://danclay.github.io/eris-fleet/interfaces/Options.html) for what options you can pass.
+In the example below, the variable `options` is passed to the admiral. [Read the docs](https://esmbot.github.io/oceanic-fleet/interfaces/Options.html) for what options you can pass.
 
 Here is an example of `index.js`:
 ```js
 const { isPrimary } = require('cluster');
-const { Fleet } = require('eris-fleet');
+const { Fleet } = require('oceanic-fleet');
 const path = require('path');
 const { inspect } = require('util');
 
@@ -100,11 +98,11 @@ if (isPrimary) {
     Admiral.on('stats', m => console.log(m));
 }
 ```
-This creates a new Admiral that will manage `bot.js` running in other processes. [More details](https://danclay.github.io/eris-fleet/classes/BaseClusterWorker.html)
+This creates a new Admiral that will manage `bot.js` running in other processes. [More details](https://esmbot.github.io/oceanic-fleet/classes/BaseClusterWorker.html)
 
-The following is an example of `bot.js`. [Read the IPC docs](https://danclay.github.io/eris-fleet/classes/IPC.html) for what you can access and do with clusters.
+The following is an example of `bot.js`. [Read the IPC docs](https://esmbot.github.io/oceanic-fleet/classes/IPC.html) for what you can access and do with clusters.
 ```js
-const { BaseClusterWorker } = require('eris-fleet');
+const { BaseClusterWorker } = require('oceanic-fleet');
 
 module.exports = class BotWorker extends BaseClusterWorker {
     constructor(setup) {
@@ -120,7 +118,7 @@ module.exports = class BotWorker extends BaseClusterWorker {
 
     async handleMessage(msg) {
         if (msg.content === "!ping" && !msg.author.bot) {
-            this.bot.createMessage(msg.channel.id, "Pong!");
+            this.bot.rest.channels.createMessage(msg.channelID, {content: "Pong!"});
         }
     }
 
@@ -140,7 +138,7 @@ The bot above will respond with "Pong!" when it receives the command "!ping".
 
 ## Services
 
-You can create services for your bot. Services are workers which do not interact directly with Eris. Services are useful for processing tasks, a central location to get the latest version of languages for your bot, custom statistics, and more! [Read the IPC docs](https://danclay.github.io/eris-fleet/classes/IPC.html) for what you can access and do with services. **Note that services always start before the clusters. Clusters will only start after all the services have started.** [More details](https://danclay.github.io/eris-fleet/classes/BaseServiceWorker.html)
+You can create services for your bot. Services are workers which do not interact directly with Oceanic. Services are useful for processing tasks, a central location to get the latest version of languages for your bot, custom statistics, and more! [Read the IPC docs](https://esmbot.github.io/oceanic-fleet/classes/IPC.html) for what you can access and do with services. **Note that services always start before the clusters. Clusters will only start after all the services have started.** [More details](https://esmbot.github.io/oceanic-fleet/classes/BaseServiceWorker.html)
 
 To add a service, add the following to the options you pass to the fleet:
 
@@ -155,7 +153,7 @@ Add a new array element for each service you want to register. Make sure each se
 Here is an example of `service.js`:
 
 ```js
-const { BaseServiceWorker } = require('eris-fleet');
+const { BaseServiceWorker } = require('oceanic-fleet');
 
 module.exports = class ServiceWorker extends BaseServiceWorker {
     constructor(setup) {
@@ -188,7 +186,7 @@ This service will simply return a value within an object sent to it within the c
 
 ```js
 const reply = await this.ipc.command("myService", {smileyFace: ":)"}, true);
-this.bot.createMessage(msg.channel.id, reply);
+this.bot.rest.channels.createMessage(msg.channelID, {content: reply});
 ```
 
 This command is being sent using the IPC. In this command, the first argument is the name of the service to send the command to, the second argument is the message to send it (in this case a simple object), and the third argument is whether you want a response (this will default to false unless you specify "true"). If you want a response, you must `await` the command or use `.then()`.
@@ -209,7 +207,7 @@ When sending the command, you can do the following to deal with the error:
 ```js
 this.ipc.command("myService", {smileyFace: ":)"}, true).then((reply) => {
     // A successful response
-    this.bot.createMessage(msg.channel.id, reply);
+    this.bot.rest.channels.createMessage(msg.channelID, {content: reply});
 }).catch((e) => {
     // Do whatever you want with the error
     console.error(e);
@@ -224,15 +222,15 @@ Below is more in-depth documentation.
 
 ### Admiral options
 
-Visit [the docs](https://danclay.github.io/eris-fleet/interfaces/Options.html) for a complete list of options.
+Visit [the docs](https://esmbot.github.io/oceanic-fleet/interfaces/Options.html) for a complete list of options.
 
 ### Admiral events
 
-Visit [the docs](https://danclay.github.io/eris-fleet/classes/Fleet.html) for a complete list of events.
+Visit [the docs](https://esmbot.github.io/oceanic-fleet/classes/Fleet.html) for a complete list of events.
 
 ### Central Request Handler
 
-The central request handler forwards Eris requests to the master process where the request is sent to a single Eris request handler instance. This helps to prevent 429 errors from occurring when you have x number of clusters keeping track of ratelimiting separately. When a response is received, it is sent back to the cluster's Eris client.
+The central request handler forwards Oceanic requests to the master process where the request is sent to a single Oceanic request handler instance. This helps to prevent 429 errors from occurring when you have x number of clusters keeping track of ratelimiting separately. When a response is received, it is sent back to the cluster's Oceanic client.
 
 ### Large Bots
 
@@ -240,15 +238,15 @@ If you are using a "very large bot," Discord's special gateway settings apply. E
 
 ### Concurrency
 
-Eris-fleet supports concurrency by starting clusters at the same time based on your bot's `max_concurrency` value. The clusters are started together in groups. The `max_concurrency` value can be overridden with [options.maxConcurrencyOverride](https://danclay.github.io/eris-fleet/interfaces/Options.html#maxConcurrencyOverride)
+oceanic-fleet supports concurrency by starting clusters at the same time based on your bot's `max_concurrency` value. The clusters are started together in groups. The `max_concurrency` value can be overridden with [options.maxConcurrencyOverride](https://esmbot.github.io/oceanic-fleet/interfaces/Options.html#maxConcurrencyOverride)
 
 ### Formats
 
-Visit [the docs](https://danclay.github.io/eris-fleet/modules.html) to view the Typescript interfaces.
+Visit [the docs](https://esmbot.github.io/oceanic-fleet/modules.html) to view the Typescript interfaces.
 
 ### Choose what to log
 
-You can choose what to log by using the `whatToLog` property in the options object. You can choose either a whitelist or a blacklist of what to log. You can select what to log by using an array. To possible array elements are shown [on the docs](https://danclay.github.io/eris-fleet/modules.html#LoggingOptions). Here is an example of choosing what to log:
+You can choose what to log by using the `whatToLog` property in the options object. You can choose either a whitelist or a blacklist of what to log. You can select what to log by using an array. To possible array elements are shown [on the docs](https://esmbot.github.io/oceanic-fleet/modules.html#LoggingOptions). Here is an example of choosing what to log:
 ```js
 const options = {
     // Your other options
@@ -262,29 +260,16 @@ Change `whitelist` to `blacklist` if you want to use a blacklist. Change the arr
 
 ## IPC
 
-Clusters and services can use IPC to interact with other clusters, the Admiral, and services. Visit [the IPC docs](https://danclay.github.io/eris-fleet/classes/IPC.html) to view available methods.
+Clusters and services can use IPC to interact with other clusters, the Admiral, and services. Visit [the IPC docs](https://esmbot.github.io/oceanic-fleet/classes/IPC.html) to view available methods.
 
 ## Stats
 
-Stats are given in [this](https://danclay.github.io/eris-fleet/interfaces/Stats.html) format.
+Stats are given in [this](https://esmbot.github.io/oceanic-fleet/interfaces/Stats.html) format.
 
-## Using a specific version of Eris or a modified version of Eris
+## Using a specific version of Oceanic or a modified version of Oceanic
 
-You can use an extended Eris client by passing it to the Options. (see the [options.customClient](https://danclay.github.io/eris-fleet/interfaces/Options.html#customClient) section).
-
-Eris-fleet is able to use packages such as eris-additions if you desire. To do so, modify your bot file to match the following template:
-```js
-// Example using eris-additions
-const { Fleet } = require("eris-fleet");
-const Eris = require("eris-additions")(require("eris"));
-
-const options = {
-    // other options
-    customClient: Eris
-}
-const Admiral = new Fleet(options);
-```
+You can use an extended Oceanic client by passing it to the Options. (see the [options.customClient](https://esmbot.github.io/oceanic-fleet/interfaces/Options.html#customClient) section).
 
 ## Using ES Modules
 
-Instead of using the file path, you can use ES Modules by passing your BotWorker class to `options.BotWorker` and your ServiceWorker class to `ServiceWorker` in the `options.services` array. See [test/](https://github.com/danclay/eris-fleet/tree/master/test) for examples.
+Instead of using the file path, you can use ES Modules by passing your BotWorker class to `options.BotWorker` and your ServiceWorker class to `ServiceWorker` in the `options.services` array. See [test/](https://github.com/esmbot/oceanic-fleet/tree/master/test) for examples.

@@ -2,6 +2,7 @@ import {isPrimary} from "cluster"
 import {Fleet} from "../../dist/index.js"
 import {inspect} from "util"
 import {BotWorker} from "./bot.mjs"
+import {Intents} from "oceanic.js"
 
 import dotenv from "dotenv"
 dotenv.config()
@@ -13,6 +14,11 @@ const options = {
         status: "dnd",
         game: {
             name: "Starting..."
+        }
+    },
+    clientOptions: {
+        gateway:{
+            intents: [Intents.GUILD_MESSAGES,Intents.MESSAGE_CONTENT]
         }
     }
 }

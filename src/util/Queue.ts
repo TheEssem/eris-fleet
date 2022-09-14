@@ -1,9 +1,11 @@
 import {EventEmitter} from "events";
-import {ClientOptions} from "eris";
+import {ClientOptions} from "oceanic.js";
+import { ServiceMessage } from "../services/Service";
+import { ClusterMessage } from "../clusters/Cluster";
 import {StartingStatus, LoggingOptions} from "../sharding/Admiral";
 
 /** @internal */
-export interface ClusterConnectMessage {
+export interface ClusterConnectMessage extends ClusterMessage {
 	clusterID: number;
 	clusterCount: number;
 	op: "connect" | string;
@@ -26,7 +28,7 @@ export interface ShutdownMessage {
 }
 
 /** @internal */
-export interface ServiceConnectMessage {
+export interface ServiceConnectMessage extends ServiceMessage {
 	serviceName: string;
 	path?: string;
 	op: "connect" | string;

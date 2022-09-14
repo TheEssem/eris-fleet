@@ -4,7 +4,7 @@ import crypto from "crypto";
 import { errorToJSON } from "./Serialization";
 import path from "path";
 import { Collection } from "../util/Collection";
-import { isPrimary } from "cluster";
+import cluster from "cluster";
 
 export interface IpcHandledLog {
 	op: "log" | "info" | "error" | "warn" | "debug",
@@ -171,7 +171,7 @@ export class IPC extends EventEmitter {
 				});
 			}
 		};
-		if (isPrimary) {
+		if (cluster.isPrimary) {
 			this.on("ipcEvent", ipcEventListener);
 		} else {
 			process.on("message", ipcEventListener);
@@ -371,9 +371,9 @@ export class IPC extends EventEmitter {
 	}
 
 	/**
-	 * Fetch a cached user from the Eris client on any cluster
+	 * Fetch a cached user from the Oceanic client on any cluster
 	 * @param id User ID
-	 * @returns The Eris user object converted to JSON
+	 * @returns The Oceanic user object converted to JSON
 	 * @example
 	 * ```js
 	 * await this.ipc.fetchUser('123456789');
@@ -389,9 +389,9 @@ export class IPC extends EventEmitter {
 	}
 
 	/**
-	 * Fetch a cached guild from the Eris client on any cluster
+	 * Fetch a cached guild from the Oceanic client on any cluster
 	 * @param id Guild ID
-	 * @returns The Eris guild object converted to JSON
+	 * @returns The Oceanic guild object converted to JSON
 	 * @example
 	 * ```js
 	 * await this.ipc.fetchGuild('123456789');
@@ -407,9 +407,9 @@ export class IPC extends EventEmitter {
 	}
 
 	/**
-	 * Fetch a cached channel from the Eris client on any cluster
+	 * Fetch a cached channel from the Oceanic client on any cluster
 	 * @param id Channel ID
-	 * @returns The Eris channel object converted to JSON
+	 * @returns The Oceanic channel object converted to JSON
 	 * @example
 	 * ```js
 	 * await this.ipc.fetchChannel('123456789');
@@ -425,10 +425,10 @@ export class IPC extends EventEmitter {
 	}
 
 	/**
-	 * Fetch a cached member from the Eris client on any cluster
+	 * Fetch a cached member from the Oceanic client on any cluster
 	 * @param guildID Guild ID
 	 * @param memberID the member's user ID
-	 * @returns The Eris member object converted to JSON
+	 * @returns The Oceanic member object converted to JSON
 	 * @example
 	 * ```js
 	 * await this.ipc.fetchMember('123456789', '987654321');
@@ -677,7 +677,7 @@ export class IPC extends EventEmitter {
 	}
 	
 	/**
-	 * Force eris-fleet to fetch fresh stats
+	 * Force oceanic-fleet to fetch fresh stats
 	 * @returns Promise with stats
 	 */
 	public collectStats(): Promise<Stats> {

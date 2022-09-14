@@ -1,5 +1,5 @@
 import {IPC} from "../util/IPC";
-import {Client} from "eris";
+import {Client} from "oceanic.js";
 
 /** @internal */
 export interface Setup {
@@ -13,7 +13,7 @@ export interface Setup {
  * The base class for a cluster
  * @example
  * ```js
- * const { BaseClusterWorker } = require('eris-fleet');
+ * const { BaseClusterWorker } = require('oceanic-fleet');
  * 
  * module.exports = class BotWorker extends BaseClusterWorker {
  * 	constructor(setup) {
@@ -30,7 +30,7 @@ export interface Setup {
  * 	}
  * 	async handleMessage(msg) {
  * 		if (msg.content === "!ping" && !msg.author.bot) {
- * 			this.bot.createMessage(msg.channel.id, "Pong!");
+ * 			this.bot.rest.channels.createMessage(msg.channelID, {content: "Pong!"});
  * 		}
  * 	}
  * handleCommand(dataSentInCommand) {
@@ -45,7 +45,7 @@ export interface Setup {
  * ```
  */
 export class BaseClusterWorker {
-	/** The Eris client */
+	/** The Oceanic client */
 	public bot: Client;
 	/** ID of the cluster */
 	public clusterID: number;

@@ -2,13 +2,19 @@ const { isPrimary } = require('cluster');
 const { Fleet } = require('../../dist/index');
 const path = require('path');
 const { inspect } = require('util');
+const { Intents } = require('oceanic.js');
 
 require('dotenv').config();
 
 const options = {
     path: path.join(__dirname, "./bot.js"),
     token: process.env.token,
-    services: [{name: "myService", path: path.join(__dirname, "./service.js")}]
+    services: [{name: "myService", path: path.join(__dirname, "./service.js")}],
+    clientOptions: {
+        gateway:{
+            intents: [Intents.GUILDS,Intents.GUILD_MESSAGES,Intents.MESSAGE_CONTENT]
+        }
+    }
 }
 
 const Admiral = new Fleet(options);

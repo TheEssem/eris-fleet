@@ -11,10 +11,10 @@ module.exports = class BotWorker extends BaseClusterWorker {
 
 	async handleMessage (msg) {
 		if (msg.content.startsWith('!test')) {
-			this.bot.createMessage(msg.channel.id, (await this.ipc.fetchMember(msg.content.replace('!test', ""), msg.author.id)).id)
+			this.bot.rest.channels.createMessage(msg.channelID, {content: (await this.ipc.fetchMember(msg.content.replace('!test', ""), msg.author.id)).id})
 		}
 		if (msg.content.startsWith('!a')) {
-			this.bot.createMessage(msg.channel.id, "t")
+			this.bot.rest.channels.createMessage(msg.channelID, {content: "t"})
 		}
 	}
 

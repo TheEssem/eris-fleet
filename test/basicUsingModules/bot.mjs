@@ -10,7 +10,7 @@ class BotWorker extends BaseClusterWorker {
 
     async handleMessage(msg) {
         if (msg.content === "!ping" && !msg.author.bot) {
-            this.bot.createMessage(msg.channel.id, "Pong!");
+            this.bot.rest.channels.createMessage(msg.channelID, {content: "Pong!"});
 			const data = await this.ipc.clusterCommand(0, null, true)
         }
     }

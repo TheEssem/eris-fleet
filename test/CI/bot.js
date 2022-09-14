@@ -11,7 +11,7 @@ module.exports = class BotWorker extends BaseClusterWorker {
 
         this.ipc.register("test1", () => {
             console.log("Sending message");
-            this.bot.createMessage(config ? config.channelID : process.env.channelID, "test1");
+            this.bot.rest.channels.createMessage(config ? config.channelID : process.env.channelID, {content:"test1"});
             this.bot.once('messageCreate', this.handleMessage.bind(this));
         });
 
@@ -27,8 +27,8 @@ module.exports = class BotWorker extends BaseClusterWorker {
                 this.ipc.command("service2", {test: "service 2"}, true).then(r => {
                     if (r === "service 2") console.log("Message received. Moving to test 2");
                     else throw r;
-                    this.ipc.fetchChannel(msg.channel.id).then(r => {
-                        if (r.id === msg.channel.id) {
+                    this.ipc.fetchChannel(msg.channelID).then(r => {
+                        if (r.id === msg.channelID) {
                             console.log("Channel fetch success. Moving to test 3");
                             this.ipc.fetchGuild(msg.guildID).then(r => {
                                 if (r.id === msg.guildID) {

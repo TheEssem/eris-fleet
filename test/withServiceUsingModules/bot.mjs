@@ -13,7 +13,7 @@ class BotWorker extends BaseClusterWorker {
             // Sends a command to the example service: "myService"
             const reply = await this.ipc.command("myService", {smileyFace: ":)"}, true);
             //console.log(reply);
-            this.bot.createMessage(msg.channel.id, reply);
+            this.bot.rest.channels.createMessage(msg.channelID, {content: reply});
         }
     }
 

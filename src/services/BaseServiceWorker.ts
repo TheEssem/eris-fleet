@@ -11,7 +11,7 @@ export interface Setup {
  * The base class for a service
  * @example
  * ```
- * const { BaseServiceWorker } = require('eris-fleet');
+ * const { BaseServiceWorker } = require('oceanic-fleet');
  * 
  * module.exports = class ServiceWorker extends BaseServiceWorker {
  * 	constructor(setup) {

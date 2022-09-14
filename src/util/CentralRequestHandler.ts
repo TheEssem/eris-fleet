@@ -1,10 +1,16 @@
 import { IPC } from "./IPC";
 import crypto from "crypto";
 import { parseJSON, reconstructError, stringifyJSON } from "./Serialization";
-import Eris from "eris";
+import Oceanic from "oceanic.js";
 
 interface CentralRequestHandlerOptions {
 	timeout: number;
+}
+
+interface CentralRequestHandlerMessage {
+	op: string;
+	id: string;
+	value: {resolved: boolean, value: unknown, valueSerialized: string};
 }
 
 export class CentralRequestHandler {
@@ -17,7 +23,7 @@ export class CentralRequestHandler {
 		this.ipc = ipc;
 		this.requests = new Map();
 
-		process.on("message", message => {
+		process.on("message", (message: CentralRequestHandlerMessage) => {
 			if (message.op === "centralApiResponse") {
 				const request = this.requests.get(message.id);
 				if (request) {
@@ -28,20 +34,22 @@ export class CentralRequestHandler {
 		});
 	}
 
-	public request(method: Eris.RequestMethod, url: string, auth?: boolean, body?: { [s: string]: unknown }, file?: Eris.FileContent, _route?: string, short?: boolean): Promise<unknown> {
+	public request(options: Oceanic.RequestOptions): Promise<unknown> {
 		const UUID = crypto.randomBytes(16).toString("hex");
 
-		let fileString;
-		if (file) {
-			if (file.file) {
-				fileString = Buffer.from(file.file).toString("base64");
-				file.file = "";
+		const fileStrings = [];
+		if (options.files) {
+			for (let i = 0; i < options.files.length; i++) {
+				if (options.files[i].contents) {
+					fileStrings.push(Buffer.from(options.files[i].contents).toString("base64"));
+					options.files[i].contents = Buffer.from([]);
+				}
 			}
 		}
-		const data = {method, url, auth, body, file, fileString, _route, short};
-		const dataSerialized = stringifyJSON(data);
+		//const data = {method, url, auth, body, file, fileString, _route, short};
+		const dataSerialized = stringifyJSON(options);
 
-		if (process.send) process.send({op: "centralApiRequest", request: {UUID, dataSerialized}});
+		if (process.send) process.send({op: "centralApiRequest", request: {UUID, dataSerialized, fileStrings}});
 
 		return new Promise((resolve, reject) => {
 			// timeout

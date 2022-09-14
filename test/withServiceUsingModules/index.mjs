@@ -3,6 +3,7 @@ import { Fleet } from '../../dist/index.js';
 import { inspect } from 'util';
 import { ServiceWorker } from "./service.mjs";
 import { BotWorker } from './bot.mjs';
+import { Intents } from 'oceanic.js';
 
 import dotenv from "dotenv"
 dotenv.config()
@@ -10,7 +11,12 @@ dotenv.config()
 const options = {
     BotWorker,
     token: process.env.token,
-    services: [{name: "myService", ServiceWorker}]
+    services: [{name: "myService", ServiceWorker}],
+    clientOptions: {
+        gateway:{
+            intents: [Intents.GUILDS,Intents.GUILD_MESSAGES,Intents.MESSAGE_CONTENT]
+        }
+    }
 }
 
 const Admiral = new Fleet(options);

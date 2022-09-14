@@ -1,4 +1,4 @@
-import {worker} from "cluster";
+import cluster from "cluster";
 import {BaseServiceWorker} from "./BaseServiceWorker";
 import {inspect} from "util";
 import { IPC } from "../util/IPC";
@@ -9,6 +9,36 @@ interface ServiceInput {
 	fetchTimeout: number;
 	overrideConsole: boolean;
 	servicesToCreate: ServiceCreator[];
+}
+
+export interface ServiceMessage {
+	op: "connect" | "command" | "eval" | "return" | "collectStats" | "shutdown" | string;
+}
+
+interface ServiceReturnMessage extends ServiceMessage {
+	id: string;
+	op: "return" | string;
+	value: any;
+}
+
+interface ServiceCommandMessage extends ServiceMessage {
+	command: {
+		UUID: string;
+		receptive: boolean;
+		msg: any;
+	};
+	op: "command" | string;
+	UUID: string;
+}
+
+interface ServiceEvalMessage extends ServiceMessage {
+	request: {
+		UUID: string;
+		receptive: boolean;
+		stringToEvaluate: string;
+	};
+	op: "eval" | string;
+	UUID: string;
 }
 
 export class Service {
@@ -43,7 +73,7 @@ export class Service {
 
 		if (process.send) process.send({op: "launched"});
 
-		process.on("message", async message => {
+		process.on("message", async (message: ServiceMessage) => {
 			if (message.op) {
 				switch (message.op) {
 				case "connect": {
@@ -60,28 +90,30 @@ export class Service {
 					break;
 				}
 				case "return": {
-					if (this.app) this.ipc.emit(message.id, message.value);
+					const returnMessage = message as ServiceReturnMessage;
+					if (this.app) this.ipc.emit(returnMessage.id, returnMessage.value);
 					break;
 				}
 				case "command": {
+					const commandMessage = message as ServiceCommandMessage;
 					const noHandle = () => {
 						const res = {err: `Service ${this.serviceName} cannot handle commands!`};
 						if (process.send) process.send({op: "return", value: {
-							id: message.command.UUID,
+							id: commandMessage.command.UUID,
 							value: res,
 							serviceName: this.serviceName
-						}, UUID: message.UUID});
+						}, UUID: commandMessage.UUID});
 						this.ipc.error("I can't handle commands!");
 					};
 					if (this.app) {
 						if (this.app.handleCommand) {
-							const res = await this.app.handleCommand(message.command.msg);
-							if (message.command.receptive) {
+							const res = await this.app.handleCommand(commandMessage.command.msg);
+							if (commandMessage.command.receptive) {
 								if (process.send) process.send({op: "return", value: {
-									id: message.command.UUID,
+									id: commandMessage.command.UUID,
 									value: res,
 									serviceName: this.serviceName
-								}, UUID: message.UUID});
+								}, UUID: commandMessage.UUID});
 							}
 						} else {
 							noHandle();
@@ -93,24 +125,25 @@ export class Service {
 					break;
 				}
 				case "eval": {
+					const evalMessage = message as ServiceEvalMessage;
 					const errorEncountered = (err: unknown) => {
-						if (message.request.receptive) {
+						if (evalMessage.request.receptive) {
 							if (process.send) process.send({op: "return", value: {
-								id: message.request.UUID,
+								id: evalMessage.request.UUID,
 								value: {err},
 								serviceName: this.serviceName
-							}, UUID: message.UUID});
+							}, UUID: evalMessage.UUID});
 						}
 					};
 					if (this.app) {
-						this.app.runEval(message.request.stringToEvaluate)
+						this.app.runEval(evalMessage.request.stringToEvaluate)
 							.then((res: unknown) => {
-								if (message.request.receptive) {
+								if (evalMessage.request.receptive) {
 									if (process.send) process.send({op: "return", value: {
-										id: message.request.UUID,
+										id: evalMessage.request.UUID,
 										value: res,
 										serviceName: this.serviceName
-									}, UUID: message.UUID});
+									}, UUID: evalMessage.UUID});
 								}
 							}).catch((error: unknown) => {
 								errorEncountered(error);
@@ -159,7 +192,7 @@ export class Service {
 		if (this.ServiceWorker) {
 			App = this.ServiceWorker;
 			try {
-				this.app = new App({serviceName: this.serviceName, workerID: worker.id, ipc: this.ipc});
+				this.app = new App({serviceName: this.serviceName, workerID: cluster.worker!.id, ipc: this.ipc});
 			} catch (e) {
 				this.ipc.error(e);
 				process.exit(1);
@@ -172,7 +205,7 @@ export class Service {
 				} else {
 					App = App.default ? App.default : App;
 				}
-				this.app = new App({serviceName: this.serviceName, workerID: worker.id, ipc: this.ipc});
+				this.app = new App({serviceName: this.serviceName, workerID: cluster.worker!.id, ipc: this.ipc});
 			} catch (e) {
 				this.ipc.error(e);
 				process.exit(1);
