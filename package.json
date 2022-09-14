@@ -1,6 +1,6 @@
 {
   "name": "oceanic-fleet",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "dependencies": {},
   "description": "Cluster management for Discord bots using the Oceanic library. Forked from eris-fleet and inspired by eris-sharder and @brussell98/megane.",
   "main": "dist/index.js",
