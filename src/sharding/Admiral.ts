@@ -262,6 +262,8 @@ export interface ClusterStats {
 	members: number;
 	/** Uptime in ms */
 	uptime: number;
+	/** The cluster's voice connections */
+	voice: number;
 	largeGuilds: number;
 	/** The cluster's memory usage in MB */
 	ram: number;
@@ -296,6 +298,7 @@ export interface Stats {
 	servicesRam: number;
 	masterRam: number;
 	totalRam: number;
+	voice: number;
 	largeGuilds: number;
 	shardCount: number;
 	clusters: ClusterStats[];
@@ -612,6 +615,7 @@ export class Admiral extends EventEmitter {
 				servicesRam: 0,
 				masterRam: 0,
 				totalRam: 0,
+				voice: 0,
 				largeGuilds: 0,
 				shardCount: 0,
 				clusters: [],
@@ -758,6 +762,7 @@ export class Admiral extends EventEmitter {
 								this.prelimStats.guilds += message.stats.guilds;
 								this.prelimStats.users += message.stats.users;
 								this.prelimStats.members += message.stats.members;
+								this.prelimStats.voice += message.stats.voice;
 								this.prelimStats.clustersRam += message.stats.ram;
 								this.prelimStats.largeGuilds += message.stats.largeGuilds;
 								this.prelimStats.shardCount += message.stats.shardStats.length;
@@ -2560,6 +2565,7 @@ export class Admiral extends EventEmitter {
 			servicesRam: 0,
 			masterRam: 0,
 			totalRam: 0,
+			voice: 0,
 			largeGuilds: 0,
 			shardCount: 0,
 			clusters: [],
