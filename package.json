@@ -8,15 +8,15 @@
   "author": "danclay",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "16.x",
-    "@types/ws": "^7.4.7",
-    "@typescript-eslint/eslint-plugin": "^4.32.0",
-    "@typescript-eslint/parser": "^4.32.0",
-    "dotenv": "^10.0.0",
-    "eslint": "^7.32.0",
+    "@types/node": "^18.7.18",
+    "@types/ws": "^8.5.3",
+    "@typescript-eslint/eslint-plugin": "^5.37.0",
+    "@typescript-eslint/parser": "^5.37.0",
+    "eslint": "^8.23.1",
+    "dotenv": "^16.0.2",
     "oceanic.js": "^1.0.0-dev.4e53781",
-    "typedoc": "^0.22.15",
-    "typescript": "4.4.x"
+    "typedoc": "^0.23.14",
+    "typescript": "^4.8.3"
   },
   "scripts": {
     "test": "node --trace-uncaught test/CI/index.js",
