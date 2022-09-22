@@ -788,6 +788,7 @@ export class Admiral extends EventEmitter {
 									if (a.id > b.id) return 1;
 									return 0;
 								};
+								// @ts-ignore
 								this.stats = Object.assign(this.prelimStats, {
 									clusters: this.prelimStats!.clusters.sort(compare),
 									timestamp: new Date().getTime()
